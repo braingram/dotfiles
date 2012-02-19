@@ -17,7 +17,8 @@ defaults = {
         'prefix': '',
         'homedir': '~/',
         'repository': '~/Dotfiles',
-        'config_file': '~/.dotfilesrc'}
+        'config_file': '~/.dotfilesrc',
+        'updatecmd': 'git pull && git push'}
 
 settings = {
         'prefix': None,
@@ -25,7 +26,8 @@ settings = {
         'repository': None,
         'config_file': None,
         'ignore': set(['.dotfilesrc']),
-        'externals': dict()}
+        'externals': dict(),
+        'updatecmd': ''}
 
 
 def missing_default_repo():
@@ -109,6 +111,10 @@ def add_action_group(parser):
             action="store_const", dest="action", const="move",
             help="move dotfiles repository to another location")
 
+    action_group.add_option("-u", "--update",
+            action="store_const", dest="action", const="update",
+            help="update your dotfiles repository")
+
     parser.add_option_group(action_group)
 
 
@@ -141,9 +147,10 @@ def parse_config(config_file):
     opts = {'repository': None,
             'prefix': None,
             'ignore': set(),
-            'externals': dict()}
+            'externals': dict(),
+            'updatecmd': ''}
 
-    for entry in ('repository', 'prefix'):
+    for entry in ('repository', 'prefix', 'updatecmd'):
         try:
             opts[entry] = parser.get('dotfiles', entry)
         except ConfigParser.NoOptionError:
@@ -169,6 +176,8 @@ def dispatch(dotfiles, action, force, args):
         getattr(dotfiles, action)(args)
     elif action == 'sync':
         dotfiles.sync(force)
+    elif action == 'update':
+        dotfiles.update()
     elif action == 'move':
         if len(args) > 1:
             print "Error: Move cannot handle multiple targets."
@@ -230,6 +239,9 @@ def main():
                           repo_config_opts['prefix'] or
                           config_opts['prefix'] or
                           defaults['prefix'])
+    settings['updatecmd'] = repo_config_opts['updatecmd'] or \
+                            config_opts['updatecmd'] or \
+                            defaults['updatecmd']
 
     update_settings(repo_config_opts, 'ignore')
     update_settings(repo_config_opts, 'externals')
